@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Puzzle Quest</title>
+<style>
+:root{--bg:#080b18;--panel:#11172a;--card:#171f38;--text:#f7f8ff;--muted:#aeb7d0;--accent:#8d63ff;--good:#35d48a;--danger:#ff5577}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,Arial;background:radial-gradient(circle at top,#182252,#070914 55%);color:var(--text);min-height:100vh}
+header{position:sticky;top:0;z-index:5;background:rgba(8,11,24,.88);backdrop-filter:blur(12px);border-bottom:1px solid #293252}
+.top{max-width:1100px;margin:auto;padding:12px 16px;display:flex;align-items:center;gap:14px}
+.logo{width:58px;height:58px;border-radius:16px;object-fit:cover;box-shadow:0 0 25px #6e5cff66;border:2px solid #ffffff22}
+.brand{font-weight:900;font-size:22px}.sub{font-size:12px;color:var(--muted)}
+.spacer{flex:1}button,select{border:0;border-radius:12px;padding:10px 13px;background:var(--card);color:var(--text);font-weight:700;cursor:pointer}
+button:hover{filter:brightness(1.15)}.hero{max-width:1100px;margin:22px auto 0;padding:0 16px}
+.hero h1{font-size:clamp(28px,5vw,48px);margin:0}.hero p{color:var(--muted)}
+.levels{max-width:1100px;margin:18px auto;padding:0 16px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.level{padding:15px;border:1px solid #293252;background:linear-gradient(145deg,#151d35,#0e1428);border-radius:16px;text-align:left}
+.level.active{outline:2px solid var(--accent)}.level small{color:var(--muted);display:block;margin-top:4px}
+main{max-width:1100px;margin:auto;padding:0 16px 40px}.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0}
+.stat{background:#11172a;border:1px solid #293252;border-radius:12px;padding:9px 12px}.stat b{color:#fff}
+.boardWrap{display:flex;justify-content:center}.board{width:min(92vw,760px);aspect-ratio:1;background:#050710;border:5px solid #303a65;border-radius:18px;padding:3px;display:grid;gap:2px;touch-action:none;user-select:none;box-shadow:0 20px 60px #0008}
+.tile{background-image:url("puzzle-1.jpg");background-repeat:no-repeat;position:relative;border-radius:2px;cursor:grab;transition:transform .12s,filter .12s;touch-action:none}
+.tile:active{cursor:grabbing;transform:scale(.97);filter:brightness(1.25);z-index:2}.tile.selected{outline:3px solid #fff;z-index:3}
+.win{display:none;margin:18px auto;padding:18px;max-width:760px;text-align:center;background:linear-gradient(135deg,#172f35,#171f38);border:1px solid #35d48a88;border-radius:18px}
+.win.show{display:block}.stars{font-size:34px;letter-spacing:5px}.next{background:var(--good);color:#04120c}
+.help{color:var(--muted);font-size:13px;text-align:center;margin-top:10px}
+@media(max-width:700px){.levels{grid-template-columns:repeat(2,1fr)}.brand{font-size:18px}.logo{width:48px;height:48px}}
+@media(prefers-color-scheme:light){body.light{--bg:#f2f4fa;--panel:#fff;--card:#e8ebf5;--text:#12152a;--muted:#59627a;background:#f4f6fb}}
+</style>
+</head>
+<body>
+<header><div class="top">
+<img class="logo" src="Logo.jpg" alt="Logo de Puzzle Quest">
+<div><div class="brand">🧩 Puzzle Quest</div><div class="sub">Rompecabezas por niveles</div></div>
+<div class="spacer"></div><button id="theme">🌙</button>
+</div></header>
+
+<section class="hero"><h1>¡Armá el puzzle!</h1><p>Arrastrá una pieza sobre otra para intercambiarlas. Al completarlo podrás pasar directamente al siguiente.</p></section>
+
+<section class="levels">
+<button class="level active" data-level="0">🟢 Fácil <small>6 × 6</small></button>
+<button class="level" data-level="1">🟡 Medio <small>12 × 12</small></button>
+<button class="level" data-level="2">🔴 Difícil <small>32 × 32</small></button>
+<button class="level" data-level="3">🟣 Secreto <small>124 × 124</small></button>
+</section>
+
+<main>
+<div class="bar">
+<div class="stat">⏱️ <b id="time">00:00</b></div>
+<div class="stat">🔄 Movimientos: <b id="moves">0</b></div>
+<div class="stat">🏆 Récord: <b id="record">—</b></div>
+<div class="spacer"></div>
+<button id="hint">💡 Pista</button><button id="shuffle">🔀 Mezclar</button><button id="reset">↩️ Reiniciar</button>
+</div>
+<div class="boardWrap"><div id="board" class="board" aria-label="Rompecabezas"></div></div>
+<div class="help">PC: arrastrá con el mouse · Celular: mantené presionada una pieza y movela sobre otra.</div>
+
+<div id="win" class="win">
+<div class="stars" id="stars">⭐⭐⭐</div>
+<h2>🎉 ¡Puzzle completado!</h2>
+<p id="winText"></p>
+<button class="next" id="next">➡️ Siguiente</button>
+</div>
+</main>
+
+<script>
+const images=["puzzle-1.jpg","puzzle-2.jpg","puzzle-3.jpg","puzzle-4.jpg"];
+const sizes=[6,12,32,124];
+let level=0, n=6, order=[], selected=null, moves=0, seconds=0, timer=null, started=false, won=false;
+const board=document.getElementById("board"), timeEl=document.getElementById("time"), movesEl=document.getElementById("moves"), recordEl=document.getElementById("record");
+
+function key(){return "pq-record-"+level}
+function fmt(s){return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")}
+function record(){let x=localStorage.getItem(key());return x?fmt(+x):"—"}
+function update(){timeEl.textContent=fmt(seconds);movesEl.textContent=moves;recordEl.textContent=record()}
+function startClock(){if(started)return;started=true;timer=setInterval(()=>{seconds++;update()},1000)}
+function makeOrder(){order=[...Array(n*n).keys()];do{for(let i=order.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]]}}while(isSolved())}
+function isSolved(){return order.every((v,i)=>v===i)}
+function render(){
+ board.innerHTML=""; board.style.gridTemplateColumns=`repeat(${n},1fr)`; board.style.gridTemplateRows=`repeat(${n},1fr)`;
+ const img=images[level];
+ order.forEach((piece,pos)=>{
+   const t=document.createElement("div");t.className="tile";t.draggable=true;
+   t.dataset.pos=pos;t.dataset.piece=piece;t.style.backgroundImage=`url("${img}")`;
+   const col=piece%n,row=Math.floor(piece/n);
+   t.style.backgroundSize=`${n*100}% ${n*100}%`;
+   t.style.backgroundPosition=`${(col*100)/(n-1)}% ${(row*100)/(n-1)}%`;
+   t.addEventListener("dragstart",e=>{startClock();selected=+t.dataset.pos;e.dataTransfer.setData("text/plain",t.dataset.pos);t.classList.add("selected")});
+   t.addEventListener("dragend",()=>t.classList.remove("selected"));
+   t.addEventListener("dragover",e=>e.preventDefault());
+   t.addEventListener("drop",e=>{e.preventDefault();let from=+e.dataTransfer.getData("text/plain");swap(from,+t.dataset.pos)});
+   t.addEventListener("click",()=>{startClock();if(selected===null){selected=+t.dataset.pos;t.classList.add("selected")}else{swap(selected,+t.dataset.pos);selected=null;render()}});
+   // Pointer/touch drag fallback
+   t.addEventListener("pointerdown",e=>{startClock();selected=+t.dataset.pos;t.classList.add("selected");t.setPointerCapture?.(e.pointerId)});
+   t.addEventListener("pointerup",e=>{let el=document.elementFromPoint(e.clientX,e.clientY)?.closest(".tile");if(el&&el!==t)swap(+t.dataset.pos,+el.dataset.pos);selected=null;document.querySelectorAll(".tile").forEach(x=>x.classList.remove("selected"))});
+   board.appendChild(t);
+ });
+}
+function swap(a,b){if(a===b||a==null||b==null)return;[order[a],order[b]]=[order[b],order[a]];moves++;render();update();check()}
+function check(){if(isSolved()&&!won){won=true;clearInterval(timer);let rec=localStorage.getItem(key());if(!rec||seconds<+rec)localStorage.setItem(key(),seconds);update();let stars=seconds<45?"⭐⭐⭐":seconds<90?"⭐⭐":"⭐";document.getElementById("stars").textContent=stars;document.getElementById("winText").textContent=`Tiempo: ${fmt(seconds)} · Movimientos: ${moves}`;document.getElementById("win").classList.add("show")}}
+function newGame(){clearInterval(timer);timer=null;started=false;won=false;selected=null;moves=0;seconds=0;n=sizes[level];makeOrder();render();update();document.getElementById("win").classList.remove("show");document.querySelectorAll(".level").forEach((x,i)=>x.classList.toggle("active",i===level))}
+document.querySelectorAll(".level").forEach(x=>x.onclick=()=>{level=+x.dataset.level;newGame()});
+document.getElementById("shuffle").onclick=()=>{makeOrder();render();moves=0;update()};
+document.getElementById("reset").onclick=newGame;
+document.getElementById("next").onclick=()=>{level=(level+1)%4;newGame()};
+document.getElementById("hint").onclick=()=>{let bad=order.findIndex((v,i)=>v!==i);if(bad<0)return;let wanted=bad;let target=order.indexOf(wanted);if(target>=0){[order[bad],order[target]]=[order[target],order[bad]];moves++;render();update();check()}};
+document.getElementById("theme").onclick=()=>{document.body.classList.toggle("light");document.getElementById("theme").textContent=document.body.classList.contains("light")?"☀️":"🌙"};
+newGame();
+</script>
+</body>
+</html>
