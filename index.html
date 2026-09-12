@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<title>🧩 Acertijos</title>
+<style>
+:root{--bg:#090b12;--card:#151a26;--text:#fff;--muted:#aeb6c7;--line:#ffffff18;--accent:#8b5cf6}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(circle at top,#20284a 0,#0b0d14 48%,#06070b 100%);color:var(--text)}
+body.light{--bg:#f4f6fb;--card:#fff;--text:#111827;--muted:#5f6878;--line:#11182718;background:linear-gradient(135deg,#eef2ff,#fff)}
+button{font:inherit}.wrap{width:min(1050px,100%);margin:auto;padding:18px}.screen{display:none}.screen.active{display:block}
+header{position:sticky;top:0;z-index:20;padding:15px 18px;text-align:center;background:#080a10dd;border-bottom:1px solid var(--line);backdrop-filter:blur(12px)}
+body.light header{background:#ffffffdd}header h1{margin:0;font-size:28px}header p{margin:4px 0 0;color:var(--muted);font-size:14px}
+.categories{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-top:20px}.cat{border:1px solid #fff2;border-radius:22px;padding:24px;color:#fff;text-align:left;cursor:pointer;box-shadow:0 14px 35px #0006;transition:.2s;min-height:150px}.cat:hover{transform:translateY(-4px);filter:brightness(1.08)}.cat:active{transform:scale(.98)}.cat h2{margin:0 0 9px}.cat p{margin:5px 0;opacity:.92}.green{background:linear-gradient(135deg,#087443,#22c76a)}.yellow{background:linear-gradient(135deg,#9a6800,#ffd21c)}.red{background:linear-gradient(135deg,#841313,#ef3434)}.purple{background:linear-gradient(135deg,#4b168c,#a63cff)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:16px;box-shadow:0 18px 50px #0005}.top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.btn{border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:#ffffff10;color:var(--text);cursor:pointer;font-weight:750}.btn:hover{background:#ffffff1d}.stats{display:flex;gap:8px;flex-wrap:wrap}.pill{border:1px solid var(--line);border-radius:999px;padding:8px 11px;color:var(--muted);font-size:13px}.progress{height:9px;background:#ffffff12;border-radius:99px;overflow:hidden;margin:14px 0}.bar{height:100%;width:0;background:linear-gradient(90deg,#60a5fa,#a78bfa);transition:.35s}
+.canvasWrap{display:flex;justify-content:center;margin:15px auto;position:relative}.board{width:min(88vw,720px);height:min(88vw,720px);max-width:720px;max-height:720px;display:block;border-radius:16px;background:#111;box-shadow:0 15px 45px #0009;touch-action:none;cursor:grab;border:2px solid #ffffff1a}.board.dragging{cursor:grabbing}.hint{text-align:center;color:var(--muted);font-size:14px;min-height:22px}.actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:12px 0}.win{display:none;text-align:center;padding:18px;margin-top:10px;border:1px solid #ffffff20;border-radius:18px;background:#ffffff0d}.win.show{display:block}.win h2{margin:0 0 7px}.stars{font-size:28px;letter-spacing:3px}.settings{display:flex;gap:8px;justify-content:center;margin-top:18px;flex-wrap:wrap}.note{font-size:12px;color:var(--muted);text-align:center;margin-top:10px}.hidden{display:none!important}
+@media(max-width:560px){.wrap{padding:12px}.cat{min-height:125px;padding:19px}.panel{padding:12px}.board{width:94vw;height:94vw;border-radius:12px}header h1{font-size:24px}}
+</style>
+</head>
+<body>
+<header><h1>🧩 ACERTIJOS</h1><p>Arrastrá las piezas hasta ordenar la imagen.</p></header>
+<div class="wrap">
+<section id="home" class="screen active">
+<div class="panel">
+<h2>Elegí una dificultad</h2>
+<div class="categories">
+<button class="cat green" onclick="startCategory('facil')"><h2>🟢 Fácil</h2><p>6 × 6</p><p>4 puzzles</p></button>
+<button class="cat yellow" onclick="startCategory('medio')"><h2>🟡 Medio</h2><p>12 × 12</p><p>4 puzzles</p></button>
+<button class="cat red" onclick="startCategory('dificil')"><h2>🔴 Difícil</h2><p>32 × 32</p><p>4 puzzles</p></button>
+<button class="cat purple" onclick="startCategory('secreto')"><h2>🟣 Secreto</h2><p>124 × 124</p><p>4 puzzles</p></button>
+</div>
+<div class="settings"><button class="btn" onclick="toggleTheme()">🌙/☀️ Modo oscuro</button><button class="btn" onclick="resetRecords()">♻️ Borrar récords</button></div>
+<p class="note">Los récords y desbloqueos se guardan en este dispositivo.</p>
+</div>
+</section>
+
+<section id="game" class="screen">
+<div class="panel">
+<div class="top"><button class="btn" onclick="goHome()">← Categorías</button><strong id="title"></strong><div class="stats"><span class="pill" id="counter"></span><span class="pill" id="moves">Movimientos: 0</span><span class="pill" id="best">Mejor: —</span></div></div>
+<div class="progress"><div id="bar" class="bar"></div></div>
+<div class="canvasWrap"><canvas id="board" class="board"></canvas></div>
+<div id="hint" class="hint">Arrastrá una pieza y soltala sobre otra para intercambiarlas.</div>
+<div class="actions"><button class="btn" onclick="shufflePuzzle()">🔀 Mezclar</button><button class="btn" onclick="showHint()">💡 Pista</button><button class="btn" onclick="restartPuzzle()">↩️ Reiniciar</button></div>
+<div id="win" class="win"><div class="stars" id="stars">⭐⭐⭐</div><h2>🎉 ¡Puzzle completado!</h2><p id="winText"></p><button class="btn" onclick="nextPuzzle()">➡️ Siguiente</button></div>
+</div>
+</section>
+</div>
+<script>
+const data={
+ facil:{name:'🟢 Fácil',size:6,imgs:['facil1.jpg','facil2.jpg','facil3.jpg','facil4.jpg']},
+ medio:{name:'🟡 Medio',size:12,imgs:['medio1.jpg','medio2.jpg','medio3.jpg','medio4.jpg']},
+ dificil:{name:'🔴 Difícil',size:32,imgs:['dificil1.jpg','dificil2.jpg','dificil3.jpg','dificil4.jpg']},
+ secreto:{name:'🟣 Secreto',size:124,imgs:['secreto1.jpg','secreto2.jpg','secreto3.jpg','secreto4.jpg']}
+};
+let cat,key,index=0,order=[],moves=0,solved=false,dragPos=null,dragPointer=null,img=new Image(),hintTimer=null,startTime=0,elapsed=0,timerId=null;
+const canvas=document.getElementById('board'),ctx=canvas.getContext('2d');
+function $(id){return document.getElementById(id)}
+function startCategory(k){cat=data[k];key=k;index=0;unlockCategory(k);$('home').classList.remove('active');$('game').classList.add('active');loadPuzzle()}
+function unlockCategory(k){localStorage.setItem('cat_'+k,'1')}
+function goHome(){stopTimer();$('game').classList.remove('active');$('home').classList.add('active')}
+function loadPuzzle(){solved=false;moves=0;dragPos=null;dragPointer=null;clearTimeout(hintTimer);$('win').classList.remove('show');$('title').textContent=cat.name;$('counter').textContent=`Puzzle ${index+1}/4`;$('moves').textContent='Movimientos: 0';$('bar').style.width=(index/4*100)+'%';updateBest();$('hint').textContent='Arrastrá una pieza y soltala sobre otra para intercambiarlas.';startTimer();img=new Image();img.onload=()=>{resizeCanvas();shufflePuzzle()};img.src=cat.imgs[index]}
+function resizeCanvas(){const size=Math.min(Math.floor(window.innerWidth*.88),720);const dpr=Math.min(window.devicePixelRatio||1,2);canvas.style.width=size+'px';canvas.style.height=size+'px';canvas.width=size*dpr;canvas.height=size*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);draw()}
+window.addEventListener('resize',()=>{if($('game').classList.contains('active'))resizeCanvas()});
+function shufflePuzzle(){if(!img.complete)return;solved=false;$('win').classList.remove('show');moves=0;order=Array.from({length:cat.size*cat.size},(_,i)=>i);let tries=0;do{for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]]}tries++}while(order.every((v,i)=>v===i)&&tries<5);draw();$('moves').textContent='Movimientos: 0';startTimer()}
+function restartPuzzle(){order=Array.from({length:cat.size*cat.size},(_,i)=>i);moves=0;solved=false;dragPos=null;$('win').classList.remove('show');$('hint').textContent='Puzzle reiniciado.';draw();startTimer();setTimeout(()=>{$('hint').textContent='Arrastrá una pieza y soltala sobre otra para intercambiarlas.'},1200)}
+function draw(){if(!img.complete||!order.length)return;const cssSize=parseFloat(canvas.style.width)||720;ctx.clearRect(0,0,cssSize,cssSize);const n=cat.size,cell=cssSize/n;for(let pos=0;pos<order.length;pos++){const id=order[pos],r=Math.floor(id/n),c=id%n,x=(pos%n)*cell,y=Math.floor(pos/n)*cell;ctx.save();ctx.beginPath();ctx.rect(x,y,cell+.5,cell+.5);ctx.clip();ctx.drawImage(img,c*img.naturalWidth/n,r*img.naturalHeight/n,img.naturalWidth/n,img.naturalHeight/n,x,y,cell+.5,cell+.5);ctx.restore();ctx.strokeStyle='rgba(255,255,255,.10)';ctx.lineWidth=Math.max(1,cssSize/1000);ctx.strokeRect(x,y,cell,cell)}if(dragPos!==null){const x=(dragPos%n)*cell,y=Math.floor(dragPos/n)*cell;ctx.fillStyle='rgba(255,255,255,.22)';ctx.fillRect(x,y,cell,cell);ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.strokeRect(x+1,y+1,Math.max(1,cell-2),Math.max(1,cell-2))}}
+function pointerPos(e){const r=canvas.getBoundingClientRect();const x=e.clientX-r.left,y=e.clientY-r.top;const n=cat.size,cssSize=r.width;return Math.max(0,Math.min(n-1,Math.floor(x/(cssSize/n))))+Math.max(0,Math.min(n-1,Math.floor(y/(cssSize/n))))*n}
+canvas.addEventListener('pointerdown',e=>{if(solved)return;dragPos=pointerPos(e);dragPointer=e.pointerId;canvas.setPointerCapture(e.pointerId);canvas.classList.add('dragging');draw()});
+canvas.addEventListener('pointerup',e=>{if(dragPos===null||solved)return;const target=pointerPos(e);canvas.releasePointerCapture?.(e.pointerId);canvas.classList.remove('dragging');if(target!==dragPos){[order[dragPos],order[target]]=[order[target],order[dragPos]];moves++;$('moves').textContent='Movimientos: '+moves;draw();if(order.every((v,i)=>v===i))finish()}dragPos=null;dragPointer=null;draw()});
+canvas.addEventListener('pointercancel',()=>{dragPos=null;dragPointer=null;canvas.classList.remove('dragging');draw()});
+function finish(){solved=true;stopTimer();const secs=elapsed;const stars=secs<30&&moves<cat.size*cat.size*.6?3:secs<90?2:1;$('stars').textContent='⭐'.repeat(stars)+'☆'.repeat(3-stars);$('bar').style.width=((index+1)/4*100)+'%';const bestKey='best_'+key+'_'+index;const old=Number(localStorage.getItem(bestKey)||0);if(!old||moves<old)localStorage.setItem(bestKey,String(moves));saveRecord(secs,moves,stars);$('winText').textContent=index<3?`Lo resolviste en ${formatTime(secs)} y ${moves} movimientos. ¡Preparado para el siguiente!`:`🏆 Completaste los 4 puzzles de ${cat.name}.`;$('win').classList.add('show');updateBest()}
+function nextPuzzle(){if(index<3){index++;loadPuzzle()}else goHome()}
+function updateBest(){const b=localStorage.getItem('best_'+key+'_'+index);$('best').textContent='Mejor: '+(b?b+' mov.':'—')}
+function saveRecord(secs,mv,stars){const arr=JSON.parse(localStorage.getItem('records')||'[]');arr.push({cat:key,puzzle:index+1,time:secs,moves:mv,stars,date:new Date().toISOString()});localStorage.setItem('records',JSON.stringify(arr.slice(-50)))}
+function startTimer(){stopTimer();elapsed=0;startTime=Date.now();timerId=setInterval(()=>{elapsed=Math.floor((Date.now()-startTime)/1000)},1000)}
+function stopTimer(){if(timerId){clearInterval(timerId);timerId=null}}
+function formatTime(s){return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`}
+function showHint(){if(solved)return;const wrong=order.findIndex((v,i)=>v!==i);if(wrong<0)return;const correct=order[wrong];const target=order.indexOf(wrong);draw();const r1=Math.floor(wrong/cat.size),c1=wrong%cat.size,r2=Math.floor(target/cat.size),c2=target%cat.size;const cssSize=parseFloat(canvas.style.width)||720,cell=cssSize/cat.size;ctx.strokeStyle='#fde047';ctx.lineWidth=Math.max(2,cssSize/180);ctx.strokeRect(c1*cell+2,r1*cell+2,Math.max(1,cell-4),Math.max(1,cell-4));ctx.strokeRect(c2*cell+2,r2*cell+2,Math.max(1,cell-4),Math.max(1,cell-4));$('hint').textContent='💡 Las piezas marcadas deben intercambiarse.';clearTimeout(hintTimer);hintTimer=setTimeout(()=>{$('hint').textContent='Arrastrá una pieza y soltala sobre otra.';draw()},2200)}
+function toggleTheme(){document.body.classList.toggle('light');localStorage.setItem('theme',document.body.classList.contains('light')?'light':'dark')}
+function resetRecords(){if(confirm('¿Borrar todos los récords y progreso?')){Object.keys(localStorage).filter(k=>k.startsWith('best_')||k.startsWith('cat_')||k==='records').forEach(k=>localStorage.removeItem(k));alert('Récords borrados.')}}
+if(localStorage.getItem('theme')==='light')document.body.classList.add('light');
+</script>
+</body>
+</html>
